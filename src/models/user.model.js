@@ -90,7 +90,7 @@ userSchema.methods.generateAccessToken = function () {
 
 
 userSchema.methods.generateRefreshToken = function () {
-    return jwt.sign(
+    return jwt.sign( // we are creating token using sign 
         // payload
         {
             _id: this._id, 
