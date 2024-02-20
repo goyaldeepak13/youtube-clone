@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcrypt"
-import { Jwt } from "jsonwebtoken";
+// import jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 
 
@@ -58,7 +59,7 @@ const userSchema = new Schema(
 // basically we are using pre middleware because we want to encrypt password before save it means we want to save the password in encrypted form
 userSchema.pre("save", async function (next) {
     if (this.isModified("password")) { // basically isModified is predefined function which tells us that its paramentere is modified or not
-        this.password = bcrypt.hash(this.password, 10) // basically this 10 is round it is part of cryptography that how many rounds we want
+        this.password = await bcrypt.hash(this.password, 10) // basically this 10 is round it is part of cryptography that how many rounds we want
         next() // we call next middleware basically "next" is not middleware , we are calling the agla wala middleware if exists
     }
     else {
