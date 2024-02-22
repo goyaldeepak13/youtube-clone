@@ -3,7 +3,7 @@ import multer from "multer";
 // The disk storage engine gives you full control on storing files to disk.
 const storage = multer.diskStorage({
     destination: function (req, file, cb) { // destination is used to determine within which folder the uploaded files should be stored //  cb is callback
-        cb(null, '/publec/temp')
+        cb(null, './public/temp')
     },
     filename: function (req, file, cb) { // filename is used to determine what the file should be named inside the folder.
 

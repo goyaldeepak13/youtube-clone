@@ -7,23 +7,28 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 const registerUser = asyncHandler(async (req, res) => {
 
     //   step 1 - get user detail from fronted
-    const { username, email, fullname, password } = req.body // if data is coming from json or from form then we can take through body
+    const { username, email, fullName, password } = req.body // if data is coming from json or from form then we can take through body
 
     // step 2 validation
-    if ([username, email, fullname, password].some((field) => field?.trim() === "")) {
+    if ([username, email, fullName, password].some((field) => field?.trim() === "")) {
         throw new ApiError(400, "All fields are required")
     }
 
     // step 3 - check if user already exist
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or: [{ username }, { email }]
     })
     // console.log("existedUser", existedUser)
     if (existedUser) throw new ApiError(409, "user with email or username already exists")
 
     // step 4 - check for images, check for avatar
+    console.log("req.files contain ",req.files)
     const avatarLocalPath = req.files?.avatar[0]?.path // multer gives access of files like express gives access of body
-    const coverImageLocalPath = req.files?.coverImage[0]?.path
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path
+    let coverImageLocalPath;
+    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        coverImageLocalPath = req.files.coverImage[0].path
+    }
 
     if (!avatarLocalPath) throw new ApiError(400, "Avatar file is required")
 
@@ -36,7 +41,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // step 6 - create user object - create entry in DB
     const user = await User.create({
-        fullname,
+        fullName,
         avatar: avatar.url,
         coverImage: coverImage?.url || "",
         email,
