@@ -4,6 +4,22 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+const generateAccessAndRefreshTokens = async (userId) => {
+    try {
+        const user = await User.findById(userId) // this user is basically document or object // it contains all propertes 
+        const accessToken = user.generateAccessToken()
+        const refreshToken = user.generateRefreshToken()
+
+        user.refreshToken = refreshToken
+        await user.save({ validateBeforeSave: false })
+
+        return { accessToken, refreshToken }
+
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while generating refresh and access tokens")
+    }
+}
+
 const registerUser = asyncHandler(async (req, res) => {
 
     //   step 1 - get user detail from fronted
@@ -22,7 +38,7 @@ const registerUser = asyncHandler(async (req, res) => {
     if (existedUser) throw new ApiError(409, "user with email or username already exists")
 
     // step 4 - check for images, check for avatar
-    console.log("req.files contain ",req.files)
+    console.log("req.files contain ", req.files)
     const avatarLocalPath = req.files?.avatar[0]?.path // multer gives access of files like express gives access of body
     // const coverImageLocalPath = req.files?.coverImage[0]?.path
     let coverImageLocalPath;
@@ -65,4 +81,96 @@ const registerUser = asyncHandler(async (req, res) => {
 
 })
 
-export { registerUser }
+const loginUser = asyncHandler(async (req, res) => {
+    // req body - data
+    // username or email
+    // find the user
+    // password check
+    // generte access and refresh token
+    // send cookie
+
+    const { email, username, password } = req.body
+    console.log("email", email);
+    if (!username && !email) {
+        throw new ApiError(400, "username or password is required")
+    }
+
+    // basically we are checking that user is exited or not
+    const user = await User.findOne({  //  
+        $or: [{ username }, { email }] // we are checking username or email 
+    })
+
+    if (!user) {
+        throw new ApiError(404, "User does not exist ")
+    }
+
+    const isPasswordValid = await user.isPasswordCorrect(password) // we made isPasswordCorrect function in usermodel
+
+    if (!isPasswordValid) {
+        throw new ApiError(401, "Incorrect Password")
+    }
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
+
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken") // // we dont want to send the password and refresh token to User
+    console.log("loggedInUser", loggedInUser);
+    // now we send cookie
+
+    const options = {
+        httpOnly: true, // now we can not modify cookie by frontend only server can modify
+        secure: true
+    }
+    // we can send many cookie
+    return res.status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse( // ApiResponse will take status, data, message you can see in ApiResponse in Utils
+                200,
+                {
+                    user: loggedInUser, accessToken, refreshToken
+                },
+                "User logged In successfully"
+
+            )
+        )
+})
+
+// basically we want to logout user // so in order to logout user we will clear its cookie and reset the refresh token
+const logoutUser = asyncHandler(async (req, res) => {
+
+    // User.findById() // basically we need userId but we dont have user_id // so thats why we write auth.middleware and add user to req so now in user.router.js before logout we run verifyJWT middleware that we write in auth.middleware after running middleware our logout mehtod will call so now we have userID // we can write auth.middleware code here in logoutUser but for reusablity we write seperate code
+
+    await User.findByIdAndUpdate(
+        // basically we are updating our refresh token in order to logout the user
+        req.user._id,
+        {
+            $set: {
+                refreshToken: undefined // now there is no refresh token in database
+                
+            }
+        },
+        {
+            new: true // basically findByIdAndUpdate return object of befor update but if we set new:true then it will return object of after updation
+        }
+    )
+
+    const options = {
+        httpOnly: true, // now we can not modify cookie by frontend only server can modify
+        secure: true
+    }
+
+    return res
+        .status(200)
+        .clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
+        .json(new ApiResponse(200, {}, "User Logged out successfully"))
+
+
+})
+
+export {
+    registerUser,
+    loginUser,
+    logoutUser
+
+}
