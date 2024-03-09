@@ -27,8 +27,8 @@ router.route("/refresh-token").post(refreshAccessToken)
 router.route("/change-password").post(verifyJWT, changeCurrentPassword)
 router.route("/current-user").get(verifyJWT, getCurrentUser) // basically here we are not sending data so we can write get and user should be logged in so we have to write verifyJWT
 router.route("/update-account").patch(verifyJWT, updateAccountDetails)// basically if we write post then all details will be update
-router.route("/avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar) // basically middleware verifyJWT is for check that user is login or not and second middleware upload is for multer
-router.route("/cover-image").patch(verifyJWT, upload.single("coverImgae"), updateCoverImage)
+router.route("/update-avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar) // basically middleware verifyJWT is for check that user is login or not and second middleware upload is for multer
+router.route("/update-cover-image").patch(verifyJWT, upload.single("coverImgae"), updateCoverImage)
 router.route("/c/:username").get(verifyJWT, getUserChannelProfile) // basically we are taking route name from params so there must be colon and we can write /channel also
 router.route("/history").get(verifyJWT, getWatchHistory)
 export default router 

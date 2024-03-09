@@ -146,8 +146,8 @@ const logoutUser = asyncHandler(async (req, res) => {
         // basically we are updating our refresh token in order to logout the user
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined // now there is no refresh token in database
+            $unset: {
+                refreshToken: 1 // now there is no refresh token in database
 
             }
         },
@@ -173,7 +173,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 // now we want to make end point so that user is able to refresh his token after getting time out, so to do this first we make controller
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-    const IncomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken
+    const IncomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
 
     if (!IncomingRefreshToken) {
         throw new ApiError(401, "Unauthorized request")
@@ -228,8 +228,10 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 
     // if we are changing the passowrd then it means user is logged in it mens auth.middleware run in past it means req has user because we add req.user = user in auth.middleware so we can take user id from that 
     const user = await User.findById(req.user?._id)
+    // console.log("user", user) // this user is object contain all the field in User model along with _id
 
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword) // basically isPasswordCorrect funtion is defined in user.model.js
+// console.log("isPasswordCorrect", isPasswordCorrect) // will return boolean value
 
     if (!isPasswordCorrect) {
         throw new ApiError(400, "Invalid old Password")
@@ -265,6 +267,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         },
         { new: true } // by doing this we will get information after updation so we will store in varibale
     ).select("-password")
+    // console.log("user", user); // it is a object
 
     return res
         .status(200)
@@ -400,7 +403,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         // basically this pipeline is for that which things we are passing to frontend 
         {
             $project: {
-                fullname: 1, // hrer 1 means we are passing this field
+                fullName: 1, // hrer 1 means we are passing this field
                 username: 1,
                 subscribersCount: 1,
                 subscribedChannelCount: 1,
@@ -412,6 +415,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         }
 
     ])
+    // console.log("channel", channel); // channel will return array that contain object that contain detail that we marked as 1 along with _id
 
     if (!channel?.length) {
         throw new ApiError(404, "channel does not exist")
@@ -465,7 +469,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                     {
                         $addFields: {
                             owner: {
-                                $first: "owner"
+                                $first: "$owner"
                             }
                         }
                     }
@@ -474,6 +478,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         }
 
     ])
+    console.log("user", user)
 
     return res
         .status(200)
